@@ -39,3 +39,28 @@ commented.
    vars, instead of skipping the whole installation process.
  - Optionally allow Oracle installer file downloads from S3 (e.g. with
    [the s3 module](http://docs.ansible.com/s3_module.html)).
+
+##Docker
+
+~~~
+docker run -it --rm -p 1521:1521 -v /media/predoiua/Data-ext/tmp:/temp/oracle centos:6.6 /bin/bash
+(mkdir roles;cd !$; ln -s .. oracle)
+~~~
+
+~~~
+echo "adding ansible user"
+useradd -m -d /home/ansible -s /bin/bash ansible
+mkdir -p /home/ansible/.ssh
+chmod 700 /home/ansible/.ssh
+touch /home/ansible/.ssh/authorized_keys
+chown -R ansible:ansible /home/ansible
+echo "ansible ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+echo "ansible:ansible" | chpasswd
+
+yum install -y openssh-server openssh-clients
+service sshd start
+yum install -y sudo
+~~~
+
+
+

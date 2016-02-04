@@ -1,0 +1,20 @@
+---
+- name: set up an oracle database
+  hosts: ora
+  user: ansible
+  sudo: True
+  vars:
+    oracle_path: /u01/app           # ORACLE_BASE will be /u01/app/oracle
+    oracle_db_name: dwh # ORACLE_SID will be my_special_db
+    #oracle_db_home: special_home    # ORACLE_HOME will be /u01/app/oracle/product/11.2.0/special_home
+    oracle_db_user: bi
+    oracle_db_pass: bi
+    oracle_db_syspass: oracle
+    oracle_tmp: /temp/oracle
+    oracle_installer1: false
+    oracle_installer2: false
+    modify_host: false
+    #oracle_installer_uri: http://my.host # Ansible will download http://my.host/linux.x64_11gR2_database_1of2.zip
+  roles:
+    # more roles here
+    - oracle

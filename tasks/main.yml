@@ -75,6 +75,7 @@
     dest: /etc/hosts
     state: present
     line: "127.0.0.1 {{ item }}"
+  when: modify_host != false
   with_items:
     - "{{ oracle_hostname }}"
     - "{{ ansible_hostname }}"
@@ -122,9 +123,11 @@
 
 - name: disable setenforce # because oracle says so, that's why
   command: /usr/sbin/setenforce 0
+  ignore_errors: yes
 
 - name: oracle-recommended selinux
   selinux: policy=targeted state=disabled
+  ignore_errors: yes
 
 #
 # create the oracle user and groups
@@ -189,7 +192,7 @@
 
 - name: install oracle
   sudo_user: "{{ oracle_user }}"
-  environment: ora_user_env
+  environment: "{{ ora_user_env }}"
   command: "{{ oracle_tmp }}/database/runInstaller -silent -force -ignoreSysPrereqs -responseFile {{ oracle_tmp }}/db_install.rsp"
   when: not oracle_installed.stat.exists
 

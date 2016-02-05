@@ -42,12 +42,13 @@ commented.
 
 ##Docker
 
-~~~
-docker run -it --rm -p 1521:1521 -v /media/predoiua/Data-ext/tmp:/temp/oracle centos:6.6 /bin/bash
-(mkdir roles;cd !$; ln -s .. oracle)
+~~~host
+docker run -it --rm --privileged -p 1521:1521 -v /media/predoiua/Data-ext/tmp:/temp/oracle centos:6.6 /bin/bash
 ~~~
 
-~~~
+~~~docker
+if [[ ! -d /temp/oracle/database ]]; then echo "error. no DB kit"; exit 1; fi
+
 echo "adding ansible user"
 useradd -m -d /home/ansible -s /bin/bash ansible
 mkdir -p /home/ansible/.ssh
@@ -57,10 +58,47 @@ chown -R ansible:ansible /home/ansible
 echo "ansible ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 echo "ansible:ansible" | chpasswd
 
+yum install -y rsyslog sudo
 yum install -y openssh-server openssh-clients
+
+vi /etc/ssh/sshd_config #TCPKeepAlive
+vi /etc/fstab #set ,size=4G
+umount /dev/shm
+mount /dev/shm
+
 service sshd start
-yum install -y sudo
 ~~~
 
+~~~host
+(mkdir roles;cd !$; ln -s .. oracle)
+ssh-keygen -f "/home/predoiua/.ssh/known_hosts" -R 172.17.0.2
+ssh-copy-id ansible@172.17.0.2
 
+ansible -i hosts/ora.ini ora -m ping
+ansible-playbook -i hosts/ora.ini ora.yml
+~~~
+
+https://docs.oseems.com/general/application/ssh/disable-timeout
+http://dba.stackexchange.com/questions/48971/target-database-memory-exceed-available-shared-memory
+
+
+/temp/oracle/database/runInstaller -silent -force -ignoreSysPrereqs -ignorePrereq -responseFile /temp/oracle/db_install.rsp
+
+
+vi /temp/oracle/db_install.rsp
+INVENTORY_LOCATION=/u01/app/oraInventory
+ORACLE_HOME=/u01/app/oracle/product/11.2.0/oracle_db_home
+
+(cd /u01/app/oraInventory; rm -rf *; cd /u01/app/oracle/product/11.2.0/oracle_db_home; rm -rf *)
+
+cat /proc/sys/kernel/shmmax
+vi /etc/sysctl.conf
+
+sysctl -p
+
+http://www.idevelopment.info/data/Unix/Linux/LINUX_AddGNOMEToCentOSMinimalInstall.shtml
+yum -y groupinstall "Desktop" "Desktop Platform" "X Window System" "Fonts"
+yum install -y xterm
+
+ssh -l oracle -X -p 22 172.17.0.2
 

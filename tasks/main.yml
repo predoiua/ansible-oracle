@@ -45,26 +45,6 @@
   # - pdksh # skip this because it's bad and we're getting ksh already
     - ksh
 
-#
-# unpack the oracle installers
-#
-
-- include: get_installer.yml
-  when: oracle_installer1 != false
-  vars:
-    installer: "{{ oracle_installer1 }}"
-    checksum: "{{ oracle_checksum1 }}"
-
-- include: get_installer.yml
-  when: oracle_installer2 != false
-  vars:
-    installer: "{{ oracle_installer2 }}"
-    checksum: "{{ oracle_checksum2 }}"
-
-- name: make sure the installer directory exists
-  stat: path={{ oracle_tmp }}/database
-  register: install_dir
-  failed_when: not install_dir.stat.exists or not install_dir.stat.isdir
 
 #
 # config system files for oracle
@@ -94,10 +74,10 @@
     - { name: "fs.file-max", value: "6815744" }
     - { name: "fs.aio-max-nr", value: "1048576" }
     - { name: "net.ipv4.ip_local_port_range", value: "9000 65500" }
-    - { name: "net.core.rmem_default", value: "262144" }
-    - { name: "net.core.rmem_max", value: "4194304" }
-    - { name: "net.core.wmem_default", value: "262144" }
-    - { name: "net.core.wmem_max", value: "1048576" }
+#    - { name: "net.core.rmem_default", value: "262144" }
+#    - { name: "net.core.rmem_max", value: "4194304" }
+#    - { name: "net.core.wmem_default", value: "262144" }
+#    - { name: "net.core.wmem_max", value: "1048576" }
 
 - name: save sysctl config
   command: sysctl -p
@@ -175,63 +155,3 @@
     - "export NLS_LANG={{ ora_user_env.NLS_LANG }}"
     - "stty erase ^H"
 
-#
-# install oracle
-#
-
-- name: check if oracle has already been installed
-  stat: path=/etc/oratab
-  register: oracle_installed
-
-- name: compose the oracle automated installer settings
-  template:
-    src: db_install.rsp.j2
-    dest: "{{ oracle_tmp }}/db_install.rsp"
-    owner: "{{ oracle_user }}"
-    group: "{{ oracle_group }}"
-
-- name: install oracle
-  sudo_user: "{{ oracle_user }}"
-  environment: "{{ ora_user_env }}"
-  command: "{{ oracle_tmp }}/database/runInstaller -silent -force -ignoreSysPrereqs -responseFile {{ oracle_tmp }}/db_install.rsp"
-  when: not oracle_installed.stat.exists
-
-- name: general oracle post-installation
-  command: "{{ oracle_path }}/oraInventory/orainstRoot.sh"
-  when: not oracle_installed.stat.exists
-
-- name: db-specific oracle post-installation
-  command: "{{ ora_user_env.ORACLE_HOME }}/root.sh"
-  when: not oracle_installed.stat.exists
-
-- name: turn off the enterprise manager web console
-  sudo_user: "{{ oracle_user }}"
-  environment: ora_user_env
-  command: "{{ ora_user_env.ORACLE_HOME }}/bin/emctl stop dbconsole"
-  ignore_errors: yes
-
-- name: set oracle to autostart
-  lineinfile:
-    dest: /etc/oratab
-    state: present
-    regexp: "^{{ oracle_db_name }}"
-    line: "{{ oracle_db_name }}:{{ ora_user_env.ORACLE_HOME }}:Y"
-
-- name: compose the oracle init.d script
-  template: src=oracle_init.j2 dest=/etc/init.d/oracle mode=0755
-
-- name: register and start up the oracle service
-  service: name=oracle state=restarted enabled=yes
-
-- name: compose the oracle user creation script
-  template:
-    src: sqlplus_user_setup.sh.j2
-    dest: "{{ oracle_tmp }}/sqlplus_user_setup.sh"
-    mode: 0755
-    owner: "{{ oracle_user }}"
-    group: "{{ oracle_group }}"
-
-- name: create the oracle db user
-  sudo_user: "{{ oracle_user }}"
-  environment: ora_user_env
-  command: "{{ oracle_tmp }}/sqlplus_user_setup.sh"

@@ -1,0 +1,21 @@
+---
+#
+# unpack the oracle installers
+#
+
+- include: get_installer.yml
+  when: oracle_installer1 != false
+  vars:
+    installer: "{{ oracle_installer1 }}"
+    checksum: "{{ oracle_checksum1 }}"
+
+- include: get_installer.yml
+  when: oracle_installer2 != false
+  vars:
+    installer: "{{ oracle_installer2 }}"
+    checksum: "{{ oracle_checksum2 }}"
+
+- name: make sure the installer directory exists
+  stat: path={{ oracle_tmp }}/database
+  register: install_dir
+  failed_when: not install_dir.stat.exists or not install_dir.stat.isdir
